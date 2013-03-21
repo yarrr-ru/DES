@@ -1,6 +1,9 @@
 #include <iostream>
+#include <fstream>
+#include <cassert>
 #include <boost/program_options.hpp>
 #include "generator.hpp"
+#include "feistel.hpp"
 
 int main(int argc, char ** argv)
 {
@@ -52,8 +55,29 @@ int main(int argc, char ** argv)
     const Key k = gen();
 
     std::cout << k << std::endl;
-  } else if(decrypt_mode) {
+    return 0;
+  }
+
+  if( !vm.count("key") ) {
+    std::cerr << "No keyfile specified" << std::endl;
+    return 1;
+  }
+
+  const std::string key_filename = vm["key"].as < std::string > ();
+  std::ifstream key_file(key_filename);
+  assert( key_file );
+  Key k;
+  key_file >> k;
+  key_file.close();
+
+  assert( k.ready() );
+
+  const Feistel f( k );
+
+  if(decrypt_mode) {
+    f.decrypt(std::cin, std::cout);
   } else if(encrypt_mode) {
+    f.encrypt(std::cin, std::cout);
   } else {
     assert(true);
   }
