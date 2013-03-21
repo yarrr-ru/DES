@@ -12,7 +12,7 @@ class Generator {
   public:
     Generator( const uint32_t a_seed );
 
-    Key operator() () const;
+    Key operator() ();
 };
 
 #endif

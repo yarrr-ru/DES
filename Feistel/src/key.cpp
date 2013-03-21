@@ -1,34 +1,24 @@
 #include <sstream>
 #include <cassert>
 #include <cstring>
-#include <boost/lexical_cast.hpp>
+#include <cstdint>
 #include "key.hpp"
 #include "constants.hpp"
 
-Key::Key()
+namespace
 {
-}
 
-bool Key::ready() const
-{
-  return m_keys.size() == ROUNDS;
-}
-
-uint32_t Key::operator [] ( const size_t a_ind ) const
-{
-  assert( a_ind < m_keys.size() );
-
-  return m_keys[a_ind];
-}
-
-uint32_t Key::hex_value( const char c )
+uint32_t hex_value( char c )
 {
   assert( isxdigit(c) );
+
+  // A-F
+  c = tolower(c);
 
   return isdigit(c) ? (c - '0') : (c - 'a' + 10);
 }
 
-uint32_t Key::from_hex( const std::string & a_key )
+uint32_t from_hex( const std::string & a_key )
 {
   assert( a_key.size() == 8 );
   uint32_t res = 0;
@@ -43,7 +33,7 @@ uint32_t Key::from_hex( const std::string & a_key )
   return res;
 }
 
-std::string Key::to_hex( const uint32_t a_key )
+std::string to_hex( const uint32_t a_key )
 {
   std::stringstream ss;
 
@@ -54,6 +44,33 @@ std::string Key::to_hex( const uint32_t a_key )
   size_t need_nulls = 8 - part.size();
   
   return std::string(need_nulls, '0') + part;
+}
+}
+
+Key::Key()
+{
+}
+
+Key::Key( const std::vector < uint32_t > & a_keys )
+  : m_keys( a_keys.begin(), a_keys.end() )
+{
+}
+
+Key::Key( const std::string & a_key )
+{
+  from_string( a_key );
+}
+
+bool Key::ready() const
+{
+  return m_keys.size() == ROUNDS;
+}
+
+uint32_t Key::operator [] ( const size_t a_ind ) const
+{
+  assert( a_ind < m_keys.size() );
+
+  return m_keys[a_ind];
 }
 
 void Key::from_string( const std::string & a_key )

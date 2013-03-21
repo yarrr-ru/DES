@@ -9,10 +9,6 @@ class Key {
   std::vector < uint32_t > m_keys;
 
 private:
-  static uint32_t hex_value( const char c );
-  static uint32_t from_hex( const std::string & a_key );
-  static std::string to_hex( const uint32_t a_key );
-
   void from_string( const std::string & a_key );
   std::string to_string() const;
 
