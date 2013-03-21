@@ -20,10 +20,10 @@ uint32_t hex_value( char c )
 
 uint32_t from_hex( const std::string & a_key )
 {
-  assert( a_key.size() == 8 );
+  assert( a_key.size() == HEX_LEN );
   uint32_t res = 0;
 
-  for( size_t i = 0; i < 8; i++ )
+  for( size_t i = 0; i < HEX_LEN; i++ )
   {
     assert( isxdigit(a_key[i]) );
     const char c = a_key[i];
@@ -41,7 +41,7 @@ std::string to_hex( const uint32_t a_key )
 
   std::string part = ss.str();
 
-  size_t need_nulls = 8 - part.size();
+  size_t need_nulls = HEX_LEN - part.size();
   
   return std::string(need_nulls, '0') + part;
 }
@@ -75,13 +75,13 @@ uint32_t Key::operator [] ( const size_t a_ind ) const
 
 void Key::from_string( const std::string & a_key )
 {
-  assert( a_key.size() == 8 * ROUNDS );
+  assert( a_key.size() == HEX_LEN * ROUNDS );
 
   m_keys.resize( ROUNDS );
 
   for(size_t i = 0; i < ROUNDS; i++)
   {
-    m_keys[i] = from_hex(a_key.substr(i * 8, 8));
+    m_keys[i] = from_hex(a_key.substr(i * HEX_LEN, HEX_LEN));
   }
 }
 

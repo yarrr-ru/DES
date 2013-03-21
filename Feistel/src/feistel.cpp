@@ -6,24 +6,22 @@ namespace {
 
 uint32_t l( const uint64_t a_block)
 {
-  const static uint64_t mask = ((uint64_t) (0xffffffff)) << 32;
-  return ((a_block & mask) >> 32);
+  return ((a_block & (PART_MASK << PART_BITS)) >> PART_BITS);
 }
 
 uint32_t r( const uint64_t a_block )
 {
-  const static uint64_t mask = 0xffffffff;
-  return (a_block & mask);
+  return (a_block & PART_MASK);
 }
 
 uint64_t merge( const uint32_t a_l, const uint32_t a_r )
 {
-  return (((uint64_t) a_l) << 32) | (a_r);
+  return (((uint64_t) a_l) << PART_BITS) | (a_r);
 }
 
 bool is_byte_empty( const uint64_t a_block, const uint32_t a_ind )
 {
-  const uint64_t mask = ((uint64_t) 0xff) << (a_ind * 8);
+  const uint64_t mask = ((BYTE_MASK) << (a_ind * BYTE_BITS));
   return (a_block & mask) == 0;
 }
 
@@ -73,17 +71,17 @@ void Feistel::encrypt( std::istream & a_in, std::ostream & a_out ) const
   bool end = false;
   while(!end) {
     buffer = 0;
-    a_in.read((char *) (&buffer), sizeof(buffer));
+    a_in.read((char *) (&buffer), BLOCK_BYTES);
     const size_t readed = a_in.gcount();
 
-    if(readed == sizeof(buffer)) {
+    if(readed == BLOCK_BYTES) {
       buffer = encrypt_block(buffer);
-      a_out.write((char *) (&buffer), sizeof(buffer));
+      a_out.write((char *) (&buffer), BLOCK_BYTES);
     } else {
-      const size_t k = readed * 8;
-      buffer |= ((uint64_t) 1) << k;
+      const size_t pos = readed * BYTE_BITS;
+      buffer |= ((uint64_t) 1) << pos;
       buffer = encrypt_block(buffer);
-      a_out.write((char *) (&buffer), sizeof(buffer));
+      a_out.write((char *) (&buffer), BLOCK_BYTES);
       end = true;
     }
   }
@@ -93,7 +91,7 @@ void Feistel::output_last_byte( const uint64_t a_block, std::ostream & a_out ) c
 {
   assert( a_block != 0 );
 
-  uint32_t end = 7;
+  uint32_t end = BLOCK_BYTES - 1;
 
   while(is_byte_empty(a_block, end))
     --end;
@@ -110,7 +108,7 @@ void Feistel::decrypt( std::istream & a_in, std::ostream & a_out ) const
   bool first = true, end = false;
   while(!end) {
     buffer = 0;
-    a_in.read((char *) (&buffer), sizeof(buffer));
+    a_in.read((char *) (&buffer), BLOCK_BYTES);
     const size_t readed = a_in.gcount();
  
     if(!readed) {
@@ -118,9 +116,9 @@ void Feistel::decrypt( std::istream & a_in, std::ostream & a_out ) const
         output_last_byte(last, a_out);
       }
       end = true;
-    } else if(readed == sizeof(buffer)) {
+    } else if(readed == BLOCK_BYTES) {
       if(!first) {
-        a_out.write((char *) (&last), sizeof(last));
+        a_out.write((char *) (&last), BLOCK_BYTES);
       }
       last = decrypt_block(buffer);
     } else {
