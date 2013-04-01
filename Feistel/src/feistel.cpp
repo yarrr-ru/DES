@@ -6,7 +6,7 @@ namespace {
 
 uint32_t l( const uint64_t a_block)
 {
-  return ((a_block & (PART_MASK << PART_BITS)) >> PART_BITS);
+  return (a_block >> PART_BITS);
 }
 
 uint32_t r( const uint64_t a_block )
@@ -16,12 +16,12 @@ uint32_t r( const uint64_t a_block )
 
 uint64_t merge( const uint32_t a_l, const uint32_t a_r )
 {
-  return (((uint64_t) a_l) << PART_BITS) | (a_r);
+  return (static_cast < uint64_t > (a_l) << PART_BITS) | (a_r);
 }
 
 bool is_byte_empty( const uint64_t a_block, const uint32_t a_ind )
 {
-  const uint64_t mask = ((BYTE_MASK) << (a_ind * BYTE_BITS));
+  const uint64_t mask = (BYTE_MASK << (a_ind * BYTE_BITS));
   return (a_block & mask) == 0;
 }
 
@@ -69,19 +69,20 @@ void Feistel::encrypt( std::istream & a_in, std::ostream & a_out ) const
 {
   uint64_t buffer = 0;
   bool end = false;
+
   while(!end) {
     buffer = 0;
-    a_in.read((char *) (&buffer), BLOCK_BYTES);
+    a_in.read(reinterpret_cast < char * > (&buffer), BLOCK_BYTES);
     const size_t readed = a_in.gcount();
 
     if(readed == BLOCK_BYTES) {
       buffer = encrypt_block(buffer);
-      a_out.write((char *) (&buffer), BLOCK_BYTES);
+      a_out.write(reinterpret_cast < const char * > (&buffer), BLOCK_BYTES);
     } else {
       const size_t pos = readed * BYTE_BITS;
-      buffer |= ((uint64_t) 1) << pos;
+      buffer |= (static_cast < uint64_t > (1) << pos);
       buffer = encrypt_block(buffer);
-      a_out.write((char *) (&buffer), BLOCK_BYTES);
+      a_out.write(reinterpret_cast < const char * > (&buffer), BLOCK_BYTES);
       end = true;
     }
   }
@@ -97,29 +98,28 @@ void Feistel::output_last_byte( const uint64_t a_block, std::ostream & a_out ) c
     --end;
 
   if(end > 0)
-  {
-    a_out.write((char *) (&a_block), end);
-  }
+    a_out.write(reinterpret_cast < const char * > (&a_block), end);
 }
 
 void Feistel::decrypt( std::istream & a_in, std::ostream & a_out ) const
 {
   uint64_t last = 0, buffer = 0;
   bool first = true, end = false;
+
   while(!end) {
     buffer = 0;
-    a_in.read((char *) (&buffer), BLOCK_BYTES);
+    a_in.read( reinterpret_cast < char * > (&buffer), BLOCK_BYTES);
     const size_t readed = a_in.gcount();
  
-    if(!readed) {
-      if(!first) {
+    if(readed == 0) {
+      if(!first)
         output_last_byte(last, a_out);
-      }
+
       end = true;
     } else if(readed == BLOCK_BYTES) {
-      if(!first) {
-        a_out.write((char *) (&last), BLOCK_BYTES);
-      }
+      if(!first)
+        a_out.write(reinterpret_cast < const char * > (&last), BLOCK_BYTES);
+      
       last = decrypt_block(buffer);
     } else {
       assert(true);

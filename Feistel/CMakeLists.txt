@@ -4,7 +4,7 @@ set(PROJECT feistel)
 
 project(${PROJECT})
 
-SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
+SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O2")
 
 set(BOOST_COMPONENTS 
   program_options
