@@ -9,8 +9,6 @@ namespace {
 
 inline uint64_t generate_bit( const uint32_t a_bit )
 {
-  assert(a_bit < BLOCK_BITS);
-
   return MASKS[a_bit];
 }
 
@@ -45,9 +43,8 @@ inline uint64_t merge_subkey( const uint64_t a_l, const uint64_t a_r )
 inline uint64_t shift_subkey( uint64_t a_block, const uint32_t a_howmuch )
 {
   for( uint32_t it = 0; it < a_howmuch; it++ ) {
-    const bool bit_value = get_bit(a_block, 0);
+    set_bit(a_block, SUBKEY_PART_BITS, get_bit(a_block, 0));
     a_block <<= 1;
-    set_bit(a_block, SUBKEY_PART_BITS - 1, bit_value);
   }
 
   return a_block;
@@ -84,25 +81,50 @@ uint64_t transform_PC2( const uint64_t a_block )
 uint64_t transform_IP( const uint64_t a_block )
 {
   uint64_t res = 0;
-  for(uint32_t i = 0; i < BLOCK_BITS; i++)
+  for(uint32_t i = 0; i < IP_LEN; i++)
     set_bit(res, i, get_bit(a_block, IP[i]));
   return res;
 }
 
-// OLD FUNCTIONS
-uint32_t l( const uint64_t a_block )
+uint64_t transform_IPR( const uint64_t a_block )
 {
-  return (a_block >> PART_BITS);
+  uint64_t res = 0;
+  for(uint32_t i = 0; i < IPR_LEN; i++)
+    set_bit(res, i, get_bit(a_block, IPR[i]));
+  return res;
 }
 
-uint32_t r( const uint64_t a_block )
+
+uint64_t transform_E( const uint64_t a_block )
 {
-  return (a_block & PART_MASK);
+  uint64_t res = 0;
+  for(uint32_t i = 0; i < E_LEN; i++)
+    set_bit(res, i, get_bit(a_block, E[i]));
+  return res;
 }
 
-uint64_t merge( const uint32_t a_l, const uint32_t a_r )
+uint64_t transform_P( const uint64_t a_block )
 {
-  return (static_cast < uint64_t > (a_l) << PART_BITS) | (a_r);
+  uint64_t res = 0;
+  for(uint32_t i = 0; i < P_LEN; i++)
+    set_bit(res, i, get_bit(a_block, P[i]));
+  return res;
+}
+
+
+inline uint64_t l_block( const uint64_t a_block )
+{
+  return (a_block && PART_MASK);
+}
+
+inline uint64_t r_block( const uint64_t a_block )
+{
+  return (a_block << PART_BITS);
+}
+
+uint64_t merge_block( const uint64_t a_l, const uint64_t a_r )
+{
+  return a_l | (a_r >> PART_BITS);
 }
 
 bool is_byte_empty( const uint64_t a_block, const uint32_t a_ind )
@@ -114,81 +136,59 @@ bool is_byte_empty( const uint64_t a_block, const uint32_t a_ind )
 }
 
 DES::DES( const Key & a_key )
-{
-  const uint64_t K = a_key();
-  
-  /* DEBUG
-  std::cout << "K:" << std::endl; 
-  print_block(K);*/
-
+{ 
   // K+
-  uint64_t Kp = transform_PC1(K);
-
-  /* DEBUG
-  std::cout << "K+:" << std::endl;
-  print_block(Kp);*/
+  const uint64_t Kp = transform_PC1(a_key());
 
   // C0 && D0
-  uint64_t C = l_subkey(Kp), D = r_subkey(Kp), CD = 0;
+  uint64_t C = l_subkey(Kp), D = r_subkey(Kp);
   
-  /* DEBUG
-  std::cout << "C0:" << std::endl;
-  print_block(C);
-  std::cout << "D0:" << std::endl;
-  print_block(D);*/
-
   // Cn && Dn && Kn 
   for(uint32_t round = 0; round < ROUNDS; round++) {
     C = shift_subkey(C, SUBKEYS_SHIFTS[round]);
     D = shift_subkey(D, SUBKEYS_SHIFTS[round]);
-    CD = merge_subkey(C, D);
-    m_keys[round] = transform_PC2(CD);
-
-    /* DEBUG
-    std::cout << "C" << (round + 1) << std::endl;
-    print_block(C);
-    std::cout << "D" << (round + 1) << std::endl;
-    print_block(D);
-    std::cout << "CD" << (round + 1) << std::endl;
-    print_block(CD);
-    std::cout << "K" << (round + 1) << std::endl;
-    print_block(m_keys[round]);*/
+    m_keys[round] = transform_PC2(merge_subkey(C, D));
   }
 }
 
-uint32_t DES::f( const uint32_t a_part, const uint32_t a_round ) const
+uint64_t DES::f( uint64_t a_part, const uint32_t a_round ) const
 {
-  return a_part;
+  a_part = transform_E(a_part);
+  a_part ^= m_keys[a_round];
+
+  return transform_P(a_part);
 }
 
-uint64_t DES::encrypt_block( const uint64_t a_block ) const
+uint64_t DES::encrypt_block( uint64_t a_block ) const
 {
-  const uint64_t IP = transform_IP(a_block);
+  a_block = transform_IP(a_block);
 
-  uint32_t l_part = l(a_block), r_part = r(a_block);
+  uint64_t l = l_block(a_block), r = r_block(a_block), temp = 0;
 
   for( uint32_t round = 0; round < ROUNDS; round++ )
   {
-    const uint32_t temp = l_part;
-    l_part = r_part ^ f(l_part, round);
-    r_part = temp;
+    temp = r;
+    r = l ^ f(r, round);
+    l = temp;
   }
 
-  return merge(l_part, r_part);
+  return transform_IPR(merge_block(l, r));
 }
 
-uint64_t DES::decrypt_block( const uint64_t a_block ) const
+uint64_t DES::decrypt_block( uint64_t a_block ) const
 {
-  uint32_t l_part = l(a_block), r_part = r(a_block);
+  a_block = transform_IP(a_block);
+
+  uint64_t l = l_block(a_block), r = r_block(a_block), temp = 0;
 
   for( uint32_t round = ROUNDS; round > 0; round-- )
   {
-    const uint32_t temp = r_part;
-    r_part = l_part ^ f(r_part, round - 1);
-    l_part = temp;
+    temp = l;
+    l = r ^ f(l, round - 1);
+    r = temp;
   }
 
-  return merge(l_part, r_part);
+  return transform_IPR(merge_block(l, r));
 }
 
 void DES::encrypt( std::istream & a_in, std::ostream & a_out ) const
