@@ -11,7 +11,7 @@ inline uint64_t generate_bit( const uint32_t a_bit )
 {
   assert(a_bit < BLOCK_BITS);
 
-  return (static_cast < uint64_t > (1) << (BLOCK_BITS - a_bit - 1));
+  return MASKS[a_bit];
 }
 
 inline bool get_bit( const uint64_t a_block, const uint32_t a_bit )
@@ -46,8 +46,8 @@ inline uint64_t shift_subkey( uint64_t a_block, const uint32_t a_howmuch )
 {
   for( uint32_t it = 0; it < a_howmuch; it++ ) {
     const bool bit_value = get_bit(a_block, 0);
-    set_bit(a_block, SUBKEY_PART_BITS, bit_value);
     a_block <<= 1;
+    set_bit(a_block, SUBKEY_PART_BITS - 1, bit_value);
   }
 
   return a_block;
@@ -81,6 +81,13 @@ uint64_t transform_PC2( const uint64_t a_block )
   return res;
 }
 
+uint64_t transform_IP( const uint64_t a_block )
+{
+  uint64_t res = 0;
+  for(uint32_t i = 0; i < BLOCK_BITS; i++)
+    set_bit(res, i, get_bit(a_block, IP[i]));
+  return res;
+}
 
 // OLD FUNCTIONS
 uint32_t l( const uint64_t a_block )
@@ -110,35 +117,34 @@ DES::DES( const Key & a_key )
 {
   const uint64_t K = a_key();
   
-  // DEBUG
+  /* DEBUG
   std::cout << "K:" << std::endl; 
-  print_block(K);
+  print_block(K);*/
 
   // K+
   uint64_t Kp = transform_PC1(K);
 
-  // DEBUG
+  /* DEBUG
   std::cout << "K+:" << std::endl;
-  print_block(Kp);
+  print_block(Kp);*/
 
   // C0 && D0
-  uint64_t C = l_subkey(Kp), D = r_subkey(Kp);
+  uint64_t C = l_subkey(Kp), D = r_subkey(Kp), CD = 0;
   
-  // DEBUG
+  /* DEBUG
   std::cout << "C0:" << std::endl;
   print_block(C);
-
   std::cout << "D0:" << std::endl;
-  print_block(D);
+  print_block(D);*/
 
   // Cn && Dn && Kn 
   for(uint32_t round = 0; round < ROUNDS; round++) {
     C = shift_subkey(C, SUBKEYS_SHIFTS[round]);
     D = shift_subkey(D, SUBKEYS_SHIFTS[round]);
-    const uint64_t CD = merge_subkey(C, D);
+    CD = merge_subkey(C, D);
     m_keys[round] = transform_PC2(CD);
 
-    // DEBUG
+    /* DEBUG
     std::cout << "C" << (round + 1) << std::endl;
     print_block(C);
     std::cout << "D" << (round + 1) << std::endl;
@@ -146,7 +152,7 @@ DES::DES( const Key & a_key )
     std::cout << "CD" << (round + 1) << std::endl;
     print_block(CD);
     std::cout << "K" << (round + 1) << std::endl;
-    print_block(m_keys[round]);
+    print_block(m_keys[round]);*/
   }
 }
 
@@ -157,6 +163,8 @@ uint32_t DES::f( const uint32_t a_part, const uint32_t a_round ) const
 
 uint64_t DES::encrypt_block( const uint64_t a_block ) const
 {
+  const uint64_t IP = transform_IP(a_block);
+
   uint32_t l_part = l(a_block), r_part = r(a_block);
 
   for( uint32_t round = 0; round < ROUNDS; round++ )
