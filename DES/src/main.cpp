@@ -73,7 +73,7 @@ int main(int argc, char ** argv)
   const std::string key = vm["key"].as < std::string > ();
   Key k( key );
 
-  const Feistel f( k );
+  const DES f( k );
 
   if(decrypt_mode) {
     f.decrypt(in, out);

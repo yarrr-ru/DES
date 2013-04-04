@@ -1,10 +1,89 @@
+#include <iostream>
 #include <cassert>
 #include "des.hpp"
 #include "constants.hpp"
 
+// http://page.math.tu-berlin.de/~kant/teaching/hess/krypto-ws2006/des.htm
+
 namespace {
 
-uint32_t l( const uint64_t a_block)
+inline uint64_t generate_bit( const uint32_t a_bit )
+{
+  assert(a_bit < BLOCK_BITS);
+
+  return (static_cast < uint64_t > (1) << (BLOCK_BITS - a_bit - 1));
+}
+
+inline bool get_bit( const uint64_t a_block, const uint32_t a_bit )
+{
+  return (a_block & generate_bit(a_bit)) != 0;
+}
+
+inline void set_bit( uint64_t & a_block, const uint32_t a_bit, const bool a_value )
+{
+  if(a_value)
+    a_block |= generate_bit(a_bit);
+  else
+    a_block &= ~generate_bit(a_bit);
+}
+
+inline uint64_t l_subkey( const uint64_t a_block )
+{
+  return (a_block & SUBKEY_PART_MASK); 
+}
+
+inline uint64_t r_subkey( const uint64_t a_block )
+{
+  return (a_block << SUBKEY_PART_BITS);
+}
+
+inline uint64_t merge_subkey( const uint64_t a_l, const uint64_t a_r )
+{
+  return a_l | (a_r >> SUBKEY_PART_BITS);
+}
+
+inline uint64_t shift_subkey( uint64_t a_block, const uint32_t a_howmuch )
+{
+  for( uint32_t it = 0; it < a_howmuch; it++ ) {
+    const bool bit_value = get_bit(a_block, 0);
+    set_bit(a_block, SUBKEY_PART_BITS, bit_value);
+    a_block <<= 1;
+  }
+
+  return a_block;
+}
+
+void print_block( const uint64_t a_block )
+{
+  for(uint32_t bit = 0; bit < BLOCK_BITS; bit++) {
+    if(bit != 0 && (bit % 4) == 0)
+      std::cout << " ";
+
+    std::cout << (get_bit(a_block, bit) ? "1" : "0");
+  }
+
+  std::cout << std::endl;
+}
+
+uint64_t transform_PC1( const uint64_t a_block )
+{
+  uint64_t res = 0;
+  for(uint32_t i = 0; i < PC1_LEN; i++)
+    set_bit(res, i, get_bit(a_block, PC1[i]));
+  return res;
+}
+
+uint64_t transform_PC2( const uint64_t a_block )
+{
+  uint64_t res = 0;
+  for(uint32_t i = 0; i < PC2_LEN; i++)
+    set_bit(res, i, get_bit(a_block, PC2[i]));
+  return res;
+}
+
+
+// OLD FUNCTIONS
+uint32_t l( const uint64_t a_block )
 {
   return (a_block >> PART_BITS);
 }
@@ -27,12 +106,56 @@ bool is_byte_empty( const uint64_t a_block, const uint32_t a_ind )
 
 }
 
-uint32_t Feistel::f( const uint32_t a_part, const uint32_t a_round ) const
+DES::DES( const Key & a_key )
+{
+  const uint64_t K = a_key();
+  
+  // DEBUG
+  std::cout << "K:" << std::endl; 
+  print_block(K);
+
+  // K+
+  uint64_t Kp = transform_PC1(K);
+
+  // DEBUG
+  std::cout << "K+:" << std::endl;
+  print_block(Kp);
+
+  // C0 && D0
+  uint64_t C = l_subkey(Kp), D = r_subkey(Kp);
+  
+  // DEBUG
+  std::cout << "C0:" << std::endl;
+  print_block(C);
+
+  std::cout << "D0:" << std::endl;
+  print_block(D);
+
+  // Cn && Dn && Kn 
+  for(uint32_t round = 0; round < ROUNDS; round++) {
+    C = shift_subkey(C, SUBKEYS_SHIFTS[round]);
+    D = shift_subkey(D, SUBKEYS_SHIFTS[round]);
+    const uint64_t CD = merge_subkey(C, D);
+    m_keys[round] = transform_PC2(CD);
+
+    // DEBUG
+    std::cout << "C" << (round + 1) << std::endl;
+    print_block(C);
+    std::cout << "D" << (round + 1) << std::endl;
+    print_block(D);
+    std::cout << "CD" << (round + 1) << std::endl;
+    print_block(CD);
+    std::cout << "K" << (round + 1) << std::endl;
+    print_block(m_keys[round]);
+  }
+}
+
+uint32_t DES::f( const uint32_t a_part, const uint32_t a_round ) const
 {
   return a_part;
 }
 
-uint64_t Feistel::encrypt_block( const uint64_t a_block ) const
+uint64_t DES::encrypt_block( const uint64_t a_block ) const
 {
   uint32_t l_part = l(a_block), r_part = r(a_block);
 
@@ -46,7 +169,7 @@ uint64_t Feistel::encrypt_block( const uint64_t a_block ) const
   return merge(l_part, r_part);
 }
 
-uint64_t Feistel::decrypt_block( const uint64_t a_block ) const
+uint64_t DES::decrypt_block( const uint64_t a_block ) const
 {
   uint32_t l_part = l(a_block), r_part = r(a_block);
 
@@ -60,12 +183,7 @@ uint64_t Feistel::decrypt_block( const uint64_t a_block ) const
   return merge(l_part, r_part);
 }
 
-Feistel::Feistel( const Key & a_key )
-  : m_key( a_key )
-{
-}
-
-void Feistel::encrypt( std::istream & a_in, std::ostream & a_out ) const
+void DES::encrypt( std::istream & a_in, std::ostream & a_out ) const
 {
   uint64_t buffer = 0;
   bool end = false;
@@ -88,7 +206,7 @@ void Feistel::encrypt( std::istream & a_in, std::ostream & a_out ) const
   }
 }
 
-void Feistel::output_last_byte( const uint64_t a_block, std::ostream & a_out ) const
+void DES::output_last_byte( const uint64_t a_block, std::ostream & a_out ) const
 {
   assert( a_block != 0 );
 
@@ -101,7 +219,7 @@ void Feistel::output_last_byte( const uint64_t a_block, std::ostream & a_out ) c
     a_out.write(reinterpret_cast < const char * > (&a_block), end);
 }
 
-void Feistel::decrypt( std::istream & a_in, std::ostream & a_out ) const
+void DES::decrypt( std::istream & a_in, std::ostream & a_out ) const
 {
   uint64_t last = 0, buffer = 0;
   bool first = true, end = false;

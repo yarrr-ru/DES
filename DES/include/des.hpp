@@ -3,9 +3,10 @@
 
 #include <iostream>
 #include "key.hpp"
+#include "constants.hpp"
 
-class Feistel {
-  Key m_key;
+class DES {
+  uint64_t m_keys[ROUNDS];
 
   private:
     uint64_t start_permutation ( const uint64_t a_block ) const;
@@ -17,7 +18,7 @@ class Feistel {
     void output_last_byte( const uint64_t a_block, std::ostream & a_out ) const;
 
   public:
-    Feistel( const Key & a_key );
+    DES( const Key & a_key );
     void encrypt( std::istream & a_in, std::ostream & a_out ) const;
     void decrypt( std::istream & a_in, std::ostream & a_out ) const;
 };
