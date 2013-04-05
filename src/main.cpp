@@ -38,10 +38,7 @@ int main(int argc, char ** argv)
   const int total_modes = static_cast < int > ( encrypt_mode ) +
                           static_cast < int > ( decrypt_mode );
 
-  if(total_modes == 0) {
-    std::cerr << desc;
-    return 1;
-  } else if(total_modes != 1) {
+  if(total_modes != 1) {
     std::cerr << desc;
     return 1;
   }
