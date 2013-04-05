@@ -201,7 +201,7 @@ uint64_t DES::encrypt_block( uint64_t a_block ) const
     l = temp;
   }
 
-  return transform_IPR(merge_block(l, r));
+  return transform_IPR(merge_block(r, l));
 }
 
 uint64_t DES::decrypt_block( uint64_t a_block ) const
@@ -212,12 +212,12 @@ uint64_t DES::decrypt_block( uint64_t a_block ) const
 
   for( uint32_t round = ROUNDS; round > 0; round-- )
   {
-    temp = l;
-    l = r ^ f(l, round - 1);
-    r = temp;
+    temp = r;
+    r = l ^ f(r, round - 1);
+    l = temp;
   }
 
-  return transform_IPR(merge_block(l, r));
+  return transform_IPR(merge_block(r, l));
 }
 
 void DES::encrypt( std::istream & a_in, std::ostream & a_out ) const
