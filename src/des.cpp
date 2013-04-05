@@ -103,44 +103,64 @@ uint64_t transform_IPR( uint64_t a_block )
 }
 
 
-uint64_t transform_E( uint64_t a_block )
+inline uint64_t transform_E( uint64_t a_block )
 {
   uint64_t res = 0;
 
   a_block >>= (BLOCK_BITS - E_BITS);
 
-  for(uint32_t i = 0; i < E_LEN; i++) {
-    res |= E[i][a_block & E_MASK];
-    a_block >>= E_PART_BITS;
-  }
+  #define E_IT(i) res |= E[i][a_block & E_MASK]; \
+                  a_block >>= E_PART_BITS;
+
+  E_IT(0)
+  E_IT(1)
+  E_IT(2)
+  E_IT(3)
+
+  #undef E_IT
 
   return res;
 }
 
-uint64_t transform_P( uint64_t a_block )
+inline uint64_t transform_P( uint64_t a_block )
 {
   uint64_t res = 0;
 
   a_block >>= (BLOCK_BITS - P_BITS);
 
-  for(uint32_t i = 0; i < P_LEN; i++) {
-    res |= P[i][a_block & P_MASK];
-    a_block >>= P_PART_BITS;
-  }
+  #define P_IT(i) res |= P[i][a_block & P_MASK]; \
+                  a_block >>= P_PART_BITS;
+
+  P_IT(0)
+  P_IT(1)
+  P_IT(2)
+  P_IT(3)
+
+  #undef P_IT
+
   return res;
 }
 
-uint64_t transform_SBOX( uint64_t a_block )
+inline uint64_t transform_SBOX( uint64_t a_block )
 {
   uint64_t res = 0;
 
   a_block >>= (BLOCK_BITS - SBOX_BITS);
 
-  for(uint32_t i = SBOX_LEN; i > 0; i--) {
-    res |= SBOX[i - 1][a_block & SBOX_MASK];
-    a_block >>= SBOX_PART_BITS;
-  }
+  #define SBOX_IT(i) res |= SBOX[i][a_block & SBOX_MASK]; \
+                     a_block >>= SBOX_PART_BITS;
 
+  SBOX_IT(7)
+  SBOX_IT(6)
+  SBOX_IT(5)
+  SBOX_IT(4)
+  SBOX_IT(3)
+  SBOX_IT(2)
+  SBOX_IT(1)
+  SBOX_IT(0)
+
+  #undef SBOX_IT
+  
   return res;
 }
 
@@ -194,8 +214,7 @@ uint64_t DES::encrypt_block( uint64_t a_block ) const
 
   uint64_t l = l_block(a_block), r = r_block(a_block), temp = 0;
 
-  for( uint32_t round = 0; round < ROUNDS; round++ )
-  {
+  for( uint32_t round = 0; round < ROUNDS; round++ ) {
     temp = r;
     r = l ^ f(r, round);
     l = temp;
@@ -210,8 +229,7 @@ uint64_t DES::decrypt_block( uint64_t a_block ) const
 
   uint64_t l = l_block(a_block), r = r_block(a_block), temp = 0;
 
-  for( uint32_t round = ROUNDS; round > 0; round-- )
-  {
+  for( uint32_t round = ROUNDS; round > 0; round-- ) {
     temp = r;
     r = l ^ f(r, round - 1);
     l = temp;
