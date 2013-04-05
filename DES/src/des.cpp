@@ -5,7 +5,7 @@
 
 // http://page.math.tu-berlin.de/~kant/teaching/hess/krypto-ws2006/des.htm
 
-namespace {
+namespace {     
 
 inline uint64_t generate_bit( const uint32_t a_bit )
 {
@@ -78,36 +78,55 @@ uint64_t transform_PC2( const uint64_t a_block )
   return res;
 }
 
-uint64_t transform_IP( const uint64_t a_block )
+uint64_t transform_IP( uint64_t a_block )
 {
   uint64_t res = 0;
-  for(uint32_t i = 0; i < IP_LEN; i++)
-    set_bit(res, i, get_bit(a_block, IP[i]));
+
+  for(uint32_t i = 0; i < IP_LEN; i++) {
+    res |= IP[i][a_block & IP_MASK];
+    a_block >>= IP_PART_BITS;
+  }
+  
   return res;
 }
 
-uint64_t transform_IPR( const uint64_t a_block )
+uint64_t transform_IPR( uint64_t a_block )
 {
   uint64_t res = 0;
-  for(uint32_t i = 0; i < IPR_LEN; i++)
-    set_bit(res, i, get_bit(a_block, IPR[i]));
+
+  for(uint32_t i = 0; i < IPR_LEN; i++) {
+    res |= IPR[i][a_block & IPR_MASK];
+    a_block >>= IPR_PART_BITS;
+  }
+
   return res;
 }
 
 
-uint64_t transform_E( const uint64_t a_block )
+uint64_t transform_E( uint64_t a_block )
 {
   uint64_t res = 0;
-  for(uint32_t i = 0; i < E_LEN; i++)
-    set_bit(res, i, get_bit(a_block, E[i]));
+
+  a_block >>= (BLOCK_BITS - E_BITS);
+
+  for(uint32_t i = 0; i < E_LEN; i++) {
+    res |= E[i][a_block & E_MASK];
+    a_block >>= E_PART_BITS;
+  }
+
   return res;
 }
 
-uint64_t transform_P( const uint64_t a_block )
+uint64_t transform_P( uint64_t a_block )
 {
   uint64_t res = 0;
-  for(uint32_t i = 0; i < P_LEN; i++)
-    set_bit(res, i, get_bit(a_block, P[i]));
+
+  a_block >>= (BLOCK_BITS - P_BITS);
+
+  for(uint32_t i = 0; i < P_LEN; i++) {
+    res |= P[i][a_block & P_MASK];
+    a_block >>= P_PART_BITS;
+  }
   return res;
 }
 
