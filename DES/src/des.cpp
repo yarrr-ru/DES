@@ -40,7 +40,7 @@ inline uint64_t merge_subkey( const uint64_t a_l, const uint64_t a_r )
   return a_l | (a_r >> SUBKEY_PART_BITS);
 }
 
-inline uint64_t shift_subkey( uint64_t a_block, const uint32_t a_howmuch )
+uint64_t shift_subkey( uint64_t a_block, const uint32_t a_howmuch )
 {
   for( uint32_t it = 0; it < a_howmuch; it++ ) {
     set_bit(a_block, SUBKEY_PART_BITS, get_bit(a_block, 0));
@@ -111,10 +111,23 @@ uint64_t transform_P( const uint64_t a_block )
   return res;
 }
 
+uint64_t transform_SBOX( uint64_t a_block )
+{
+  uint64_t res = 0;
+
+  a_block >>= (BLOCK_BITS - SBOX_BITS);
+
+  for(uint32_t i = SBOX_LEN; i > 0; i--) {
+    res |= SBOX[i - 1][a_block & SBOX_MASK];
+    a_block >>= SBOX_PART_BITS;
+  }
+
+  return res;
+}
 
 inline uint64_t l_block( const uint64_t a_block )
 {
-  return (a_block && PART_MASK);
+  return (a_block & PART_MASK);
 }
 
 inline uint64_t r_block( const uint64_t a_block )
@@ -122,7 +135,7 @@ inline uint64_t r_block( const uint64_t a_block )
   return (a_block << PART_BITS);
 }
 
-uint64_t merge_block( const uint64_t a_l, const uint64_t a_r )
+inline uint64_t merge_block( const uint64_t a_l, const uint64_t a_r )
 {
   return a_l | (a_r >> PART_BITS);
 }
@@ -151,12 +164,9 @@ DES::DES( const Key & a_key )
   }
 }
 
-uint64_t DES::f( uint64_t a_part, const uint32_t a_round ) const
+inline uint64_t DES::f( uint64_t a_part, const uint32_t a_round ) const
 {
-  a_part = transform_E(a_part);
-  a_part ^= m_keys[a_round];
-
-  return transform_P(a_part);
+  return transform_P(transform_SBOX(transform_E(a_part) ^ m_keys[a_round]));
 }
 
 uint64_t DES::encrypt_block( uint64_t a_block ) const
