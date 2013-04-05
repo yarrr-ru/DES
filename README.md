@@ -3,7 +3,7 @@ DES (Data Encryption Standard)
 
 My C++ implementation of DES for university crypt course.
 
-It's quite fast (~15mb/sec on i3-370 M).
+It's quite fast (~20MB/sec on i3-370 M).
 
 
 Dependencies:

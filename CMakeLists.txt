@@ -4,7 +4,7 @@ set(PROJECT des)
 
 project(${PROJECT})
 
-SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O2")
+SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O3")
 
 set(BOOST_COMPONENTS 
   program_options
