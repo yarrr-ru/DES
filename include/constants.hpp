@@ -3,33 +3,40 @@
 
 #include <cstdint>
 
-const static uint32_t ROUNDS = 16,                           // Total rounds
-                      KEY_LEN = 16,                          // Key length in chars
-                      BYTE_BITS = 8,                         // Bits in one byte
-                      BLOCK_BITS = 64,                       // Bits in one block
-                      PART_BITS = BLOCK_BITS / 2,            // Bits in one block part
-                      SUBKEY_BITS = 56,                      // Bits in one subkey
-                      SUBKEY_PART_BITS = SUBKEY_BITS / 2,    // Bits in one subkey part
-                      BLOCK_BYTES = 8,                       // Bytes in one block
-                      SBOX_BITS = 48,                        // Bits in block before sboxing
-                      SBOX_PART_BITS = 6,                    // Bits in one part of sbox
-                      IP_PART_BITS = 8,                      // Bits in one part of IP
-                      IPR_PART_BITS = 8,                     // Bits in one part of IPR
-                      E_BITS = 32,                           // Bits in block before E
-                      E_PART_BITS = 8,                       // Bits in one part of E
-                      P_BITS = 32,                           // Bits in block before P
-                      P_PART_BITS = 8;                       // Bits in one part of P
+const static uint32_t ROUNDS = 16,                              // Total rounds
+                      KEY_LEN = 16,                             // Key length in chars
                       
-const static uint64_t PART_MASK = 0xffffffff00000000,        // Mask for first part of block
-                      BYTE_MASK = 0xff,                      // Mask for first byte
-                      SUBKEY_PART_MASK = 0xfffffff000000000, // Mask for first part of subkey
-                      SBOX_MASK = 0x3f,                      // Mask for one sbox part
-                      IP_MASK = 0xff,                        // Mask for IP part
-                      IPR_MASK = 0xff,                       // Mask for IPR part
-                      E_MASK = 0xff,                         // Mask for E part
-                      P_MASK = 0xff;                         // Mask for P part
+                      BYTE_BITS = 8,                            // Bits in one byte
+                      
+                      BLOCK_BYTES = 8,                          // Bytes in one block
+                      BLOCK_BITS = BLOCK_BYTES * BYTE_BITS,     // Bits in one block
+                      PART_BITS = BLOCK_BITS / 2,               // Bits in one block part
+                      
+                      SUBKEY_BITS = 56,                         // Bits in one subkey                      
+                      SUBKEY_PART_BITS = SUBKEY_BITS / 2,       // Bits in one subkey part
 
-const static uint32_t PC1_LEN = SUBKEY_BITS;
+                      SBOX_BITS = 48,                           // Bits in block before sboxing
+                      SBOX_PART_BITS = 6,                       // Bits in one part of sbox
+                      
+                      IP_PART_BITS = 8,                         // Bits in one part of IP
+                      IPR_PART_BITS = 8,                        // Bits in one part of IPR
+                      
+                      E_BITS = 32,                              // Bits in block before E
+                      E_PART_BITS = 8,                          // Bits in one part of E
+                      
+                      P_BITS = 32,                              // Bits in block before P
+                      P_PART_BITS = 8;                          // Bits in one part of P
+                      
+const static uint64_t BYTE_MASK = (1ull << BYTE_BITS) - 1,      // Mask for first byte
+                      PART_MASK = 0xffffffff00000000,           // Mask for first part of block
+                      SUBKEY_PART_MASK = 0xfffffff000000000,    // Mask for first part of subkey
+                      SBOX_MASK = (1ull << SBOX_PART_BITS) - 1, // Mask for one sbox part
+                      IP_MASK = (1ull << IP_PART_BITS) - 1,     // Mask for IP part
+                      IPR_MASK = (1ull << IPR_PART_BITS) - 1,   // Mask for IPR part
+                      E_MASK = (1ull << E_PART_BITS) - 1,       // Mask for E part
+                      P_MASK = (1ull << P_PART_BITS) - 1;       // Mask for P part
+
+const static uint32_t PC1_LEN = 56;
 
 const static uint32_t PC1[PC1_LEN] = {
   56, 48, 40, 32, 24, 16, 8,

@@ -82,11 +82,20 @@ uint64_t transform_IP( uint64_t a_block )
 {
   uint64_t res = 0;
 
-  for(uint32_t i = 0; i < IP_LEN; i++) {
-    res |= IP[i][a_block & IP_MASK];
-    a_block >>= IP_PART_BITS;
-  }
-  
+  #define IP_IT(i) res |= IP[i][a_block & IP_MASK]; \
+                   a_block >>= IP_PART_BITS;
+
+  IP_IT(0)
+  IP_IT(1)
+  IP_IT(2)
+  IP_IT(3)
+  IP_IT(4)
+  IP_IT(5)
+  IP_IT(6)
+  IP_IT(7)
+
+  #undef IP_IT
+
   return res;
 }
 
@@ -94,10 +103,19 @@ uint64_t transform_IPR( uint64_t a_block )
 {
   uint64_t res = 0;
 
-  for(uint32_t i = 0; i < IPR_LEN; i++) {
-    res |= IPR[i][a_block & IPR_MASK];
-    a_block >>= IPR_PART_BITS;
-  }
+  #define IPR_IT(i) res |= IPR[i][a_block & IPR_MASK]; \
+                    a_block >>= IPR_PART_BITS;
+
+  IPR_IT(0)
+  IPR_IT(1)
+  IPR_IT(2)
+  IPR_IT(3)
+  IPR_IT(4)
+  IPR_IT(5)
+  IPR_IT(6)
+  IPR_IT(7)
+
+  #undef IPR_IT
 
   return res;
 }
